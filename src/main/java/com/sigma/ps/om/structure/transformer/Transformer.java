@@ -26,7 +26,7 @@ public abstract class Transformer implements Processor {
             mappingConfig = SoiMapping.getConfig(EnvironmentUtil.getEnvConfig(adapterName)
                     .get(filepath));
         } catch (final Exception e) {
-            throw new SoiTransformerException("Error creating file mapping for " + adapterName);
+            throw new SoiTransformerException("Error creating mapping config file for " + adapterName);
         }
 		return mappingConfig;
 	}
