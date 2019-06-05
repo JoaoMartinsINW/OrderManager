@@ -20,7 +20,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HttpDeleteWithBody extends HttpEntityEnclosingRequestBase{
+public class HttpDeleteWithBody extends HttpEntityEnclosingRequestBase {
     public HttpDeleteWithBody() {
         super();
     }
@@ -35,13 +35,13 @@ public class HttpDeleteWithBody extends HttpEntityEnclosingRequestBase{
         setURI(uri);
     }
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(HttpDeleteWithBody.class);
-    public static final String METHOD_NAME = "DELETE";
+    private static final Logger LOGGER      = LoggerFactory.getLogger(HttpDeleteWithBody.class);
+    public static final String  METHOD_NAME = "DELETE";
 
     public static Response sendDelete(String URL, String payload, Map<String, String> headers) throws IOException {
         final CloseableHttpClient httpclient = HttpClients.createDefault();
 
-        LOGGER.info("Payload : {}",payload);
+        LOGGER.info("Payload : {}", payload);
         final HttpDeleteWithBody httpDelete = new HttpDeleteWithBody(URL);
         final StringEntity input = new StringEntity(payload, ContentType.APPLICATION_JSON);
 
@@ -52,15 +52,15 @@ public class HttpDeleteWithBody extends HttpEntityEnclosingRequestBase{
         }
 
         httpDelete.setEntity(input);
-        LOGGER.info("Http Delete : {}",  httpDelete);
+        LOGGER.info("Http Delete : {}", httpDelete);
         final Header requestHeaders[] = httpDelete.getAllHeaders();
-        LOGGER.info("requestHeaders: {}",  requestHeaders[0]);
+        LOGGER.info("requestHeaders: {}", requestHeaders[0]);
 
         final CloseableHttpResponse response = httpclient.execute(httpDelete);
 
         final ResponseBuilder responseBuilder = new ResponseBuilderImpl().status(response.getStatusLine().getStatusCode());
         responseBuilder.entity(response.getEntity());
-
+        httpclient.close();
         LOGGER.info("Status Code : {}", response.getStatusLine().getStatusCode());
         LOGGER.info("Response Entity : {}", response.getEntity());
         return responseBuilder.build();

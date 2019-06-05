@@ -12,25 +12,26 @@ import org.slf4j.LoggerFactory;
 
 public enum FilesProcessorUtils {
     INSTANCE;
-    public final static Logger              LOGGER  = LoggerFactory
-            .getLogger(FilesProcessorUtils.class.getName());
-    public static final Map<String, String> readMap = new HashMap<String, String>();
+    private static final String                UTF8    = "UTF-8";
+    protected static final Map<String, String> readMap = new HashMap<>();
+    public static final Logger                 LOGGER  = LoggerFactory.getLogger(FilesProcessorUtils.class.getName());
 
     public static String readFileFromConfig(String directory, String subDirectory, String fileName)
-            throws Exception {
+            throws IOException {
+
         if (readMap.containsKey(fileName)) {
             LOGGER.info("returning statically loaded {} file", fileName);
             return readMap.get(fileName);
         }
+
         final String rootFolder = System.getProperty(directory);
         final String subFolder = System.getProperty(subDirectory);
-
         final File confFile = new File(rootFolder + File.separator + subFolder + File.separator + fileName);
         // load properties file depends on system property and application conf
         // directory
         LOGGER.debug(" SOI configuration file {}", confFile);
         if (confFile.exists()) {
-            final String fileRead = readSystemFile(confFile);
+            final String fileRead = FileUtils.readFileToString(confFile, UTF8);
             LOGGER.info("File {} successfully loaded in static map ", fileName);
             readMap.put(fileName, fileRead);
             return fileRead;
@@ -39,20 +40,16 @@ public enum FilesProcessorUtils {
         }
     }
 
-    public static String readSystemFile(final File confFile) throws IOException {
-        return FileUtils.readFileToString(confFile, "UTF-8");
-    }
-
     public static String readSystemFile(String absoluteFilePath) throws IOException {
         final File file = new File(absoluteFilePath);
         if (file.exists()) {
-            return readSystemFile(file);
+            return FileUtils.readFileToString(file, UTF8);
         }
         return "";
     }
 
     public static void writeSystemFile(String data, String fileName) throws IOException {
         final File file = new File(fileName);
-        FileUtils.writeStringToFile(file, data, "UTF-8");
+        FileUtils.writeStringToFile(file, data, UTF8);
     }
 }
