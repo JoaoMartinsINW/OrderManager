@@ -24,33 +24,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CatalogUtils {
-    /** The Constant LOGGER. */
+public final class CatalogUtils {
+    private CatalogUtils() {
+    }
+
     private static final Logger LOGGER = LoggerFactory.getLogger(CatalogUtils.class);
 
     public static OrderChange addAtrritbuteInOrderHeader(OrderChange orderChange, String itemName, String itemValue) {
-        LOGGER.info("Inside addAtrritbuteInOrderHeader");
+        LOGGER.debug("Inside addAtrritbuteInOrderHeader");
         final CharacteristicChange charChange = new CharacteristicChange();
         charChange.addValue(itemValue);
         charChange.setName(itemName);
         orderChange.addCharacteristic(charChange);
-        return orderChange;
-    }
-
-    public static OrderChange addAtrritbuteInOrderHeader(String itemName, String itemValue) {
-        LOGGER.info("Inside addAtrritbuteInOrderHeader");
-
-        final OrderChange orderChange = new OrderChange();
-        final CharacteristicChange charChange = new CharacteristicChange();
-        charChange.addValue(itemValue);
-        charChange.setName(itemName);
-        orderChange.addCharacteristic(charChange);
-
         return orderChange;
     }
 
@@ -71,10 +62,9 @@ public class CatalogUtils {
                     LOGGER.debug("newValue in case of Retry : {}", charChange.getValues().iterator().next());
                     return charChange.getValues().iterator().next();
                 }
-
             }
         }
-        return null;
+        return "";
     }
 
     /**
@@ -100,7 +90,7 @@ public class CatalogUtils {
                 }
             }
         }
-        return null;
+        return "";
     }
 
     public static OrderItemChange createOrderItemChange(String oItemKey, Map<String, String> charVal) {
@@ -118,32 +108,32 @@ public class CatalogUtils {
         return itemChange;
     }
 
-    public static OrderItemChange createOrderItemChange(String oItemKey, String tvLanCharName, String value) {
-        final OrderItemChange itemChange = new OrderItemChange();
-        final CatalogEntityChange entityChange = new CatalogEntityChange();
-        final CharacteristicChange characChange = new CharacteristicChange();
-        characChange.setName(tvLanCharName);
-        characChange.addValue(value);
-        entityChange.addCharacteristic(characChange);
-        itemChange.setCatalogEntity(entityChange);
-        itemChange.setKey(oItemKey);
-        return itemChange;
-    }
+    // ::TODO ::: Analisar com o joão se devemos apagar isto. É igual ao método anterior mas com um
+    // input muito específico, não faz sentido.
+
+    /*
+     * public static OrderItemChange createOrderItemChange(String oItemKey, String tvLanCharName,
+     * String value) { final OrderItemChange itemChange = new OrderItemChange(); final
+     * CatalogEntityChange entityChange = new CatalogEntityChange(); final CharacteristicChange
+     * characChange = new CharacteristicChange(); characChange.setName(tvLanCharName);
+     * characChange.addValue(value); entityChange.addCharacteristic(characChange);
+     * itemChange.setCatalogEntity(entityChange); itemChange.setKey(oItemKey); return itemChange; }
+     */
 
     /**
      * @param catalogEntity
      * @param charName
      * @return value of charName Boolean
      */
+    // TODO: delete if generic solution works
+    @Deprecated
     public static Boolean getBooleanValueFromEntity(CatalogEntity catalogEntity, String charName) {
-        if (null != charName && null != catalogEntity && catalogEntity.isCharacteristicPopulated(charName)) {
+        if (charName != null && catalogEntity != null && catalogEntity.isCharacteristicPopulated(charName)) {
             LOGGER.debug("characteristic {} , value {} ", charName,
                     catalogEntity.getEntity().getCharacteristic(charName).getFirstValue());
             return Boolean.parseBoolean(catalogEntity.getEntity().getCharacteristic(charName).getFirstValue());
-        } else {
-            LOGGER.info("characteristic {} not populated", charName);
-            return null;
         }
+        return false;
     }
 
     /**
@@ -153,18 +143,16 @@ public class CatalogUtils {
      * @param guid
      * @return List of CatalogEntity
      */
-    public static List<CatalogEntity> getCatalogEntitiesByGuid(Order order, String guid) {
-        final List<CatalogEntity> catalogEntities = new ArrayList<>();
-        for (final OrderItem oi : order.getAllOrderItem()) {
-            LOGGER.debug(" entity name : {}, spec key {}", oi.getCatalogEntity().getSpecFQNameWithoutPath(),
-                    oi.getCatalogEntity().getSpecKey());
-            if (StringUtils.equalsIgnoreCase(oi.getCatalogEntity().getSpec().getElementGUID(), guid)) {
-                LOGGER.debug(" entity found : {}", JsonUtils.toString(oi.getCatalogEntity()));
-                catalogEntities.add(oi.getCatalogEntity());
-            }
-        }
-        LOGGER.info("{} CatalogEntity found for guid {}", catalogEntities.size(), guid);
-        return catalogEntities;
+    public static List<CatalogEntity> getCatalogEntitiesByGuid(Object order, String guid) {
+        if (order instanceof Order)
+            return ((Order) order).getAllOrderItem().stream()
+                    .filter(x -> x.getCatalogEntity().getSpec().getElementGUID().equals(guid))
+                    .map(OrderItem::getCatalogEntity).collect(Collectors.toList());
+        else if (order instanceof SoiRequest)
+            return ((SoiRequest) order).getRequestItems().stream()
+                    .filter(x -> x.getItem().getCatalogEntity().getSpec().getElementGUID().equals(guid))
+                    .map(x -> x.getItem().getCatalogEntity()).collect(Collectors.toList());
+        return new ArrayList<>();
     }
 
     /**
@@ -174,19 +162,12 @@ public class CatalogUtils {
      * @param String guid
      * @return List of CatalogEntity
      */
+    // Delete after confirm if generic version is working
+    @Deprecated
     public static List<CatalogEntity> getCatalogEntitiesByGuid(SoiRequest soiRequest, String guid) {
-        final List<CatalogEntity> catalogEntities = new ArrayList<>();
-        for (final SoiRequestItem soiRequestItem : soiRequest.getRequestItems()) {
-            LOGGER.debug("Catalog Entity with Name {} ",
-                    soiRequestItem.getItem().getCatalogEntity().getSpecFQNameWithoutPath());
-            if (StringUtils.equalsIgnoreCase(soiRequestItem.getItem().getCatalogEntity().getSpec().getElementGUID(),
-                    guid)) {
-                LOGGER.debug(" entity found : {}", JsonUtils.toString(soiRequestItem.getItem().getCatalogEntity()));
-                catalogEntities.add(soiRequestItem.getItem().getCatalogEntity());
-            }
-        }
-        LOGGER.info("{} CatalogEntity found for guid {}", catalogEntities.size(), guid);
-        return catalogEntities;
+        return soiRequest.getRequestItems().stream()
+                .filter(x -> x.getItem().getCatalogEntity().getSpec().getElementGUID().equals(guid))
+                .map(x -> x.getItem().getCatalogEntity()).collect(Collectors.toList());
     }
 
     /**
@@ -241,40 +222,19 @@ public class CatalogUtils {
     public static String getCFSServiceName(Order order, String sikValue, String orderItemKey, boolean found) {
         LOGGER.debug("getCFSServiceName ,orderID {},sikValue {},orderItemKey {} ", order.getKey(), sikValue,
                 orderItemKey);
-        String cfsServiceName = "";
-        if (!CommonUtils.isEmpty(order) && !found) {
-            if (!CommonUtils.isEmpty(order.getOrderItem(orderItemKey))) {
-                final OrderItem parentItem = order.getOrderItem(order.getOrderItem(orderItemKey).getParentItemKey());
-                if (!CommonUtils.isEmpty(parentItem)) {
-                    LOGGER.debug("parentItem Catalog Entity with Name {} , DisplayId {}  ",
-                            parentItem.getCatalogEntity().getSpecFQNameWithoutPath(), parentItem.getDisplayId());
-                    if (parentItem.getCatalogEntity().isCharacteristicPopulated("Product ID")) {
-                        final String productIdValue = parentItem.getCatalogEntity().getEntity()
-                                .getCharacteristic("Product ID").getFirstValue();
-                        if (StringUtils.equals(productIdValue, sikValue)) {
-                            if (parentItem.getCatalogEntity().isCharacteristicPopulated("CFSCserviceName")) {
-                                cfsServiceName = parentItem.getCatalogEntity().getEntity()
-                                        .getCharacteristic("CFSCserviceName").getFirstValue();
-                                LOGGER.info("return found CFS DisplayId {}, CFSServiceName value {} ",
-                                        parentItem.getDisplayId(), cfsServiceName);
-                                found = true;
-                                return cfsServiceName;
-                            }
-                        }
-                    } else {
-                        if (!CommonUtils.isEmpty(parentItem) && !CommonUtils.isEmpty(parentItem.getParentItemKey())
-                                && !found) {
-                            LOGGER.info("ParentItemKey {},  found value {}", parentItem.getParentItemKey(), found);
-                            LOGGER.debug("calling getCFSServiceName for orderItemKey {} ,DisplayId {} ",
-                                    parentItem.getKey(), parentItem.getDisplayId());
-                            return getCFSServiceName(order, sikValue, parentItem.getKey(), found);
-                        }
-                    }
-                }
+        if (!CommonUtils.isEmpty(order) && !found && !CommonUtils.isEmpty(order.getOrderItem(orderItemKey))) {
+            final OrderItem parentItem = order.getOrderItem(order.getOrderItem(orderItemKey).getParentItemKey());
+            if (!CommonUtils.isEmpty(parentItem)
+                    && parentItem.getCatalogEntity().isCharacteristicPopulated("Product ID")
+                    && parentItem.getCatalogEntity().getEntity().getCharacteristic("Product ID").getFirstValue()
+                            .equals(sikValue)
+                    && parentItem.getCatalogEntity().isCharacteristicPopulated("CFSCserviceName")) {
+                return parentItem.getCatalogEntity().getEntity().getCharacteristic("CFSCserviceName").getFirstValue();
+            } else if (!CommonUtils.isEmpty(parentItem) && !CommonUtils.isEmpty(parentItem.getParentItemKey())) {
+                return getCFSServiceName(order, sikValue, parentItem.getKey(), found);
             }
         }
-        LOGGER.info(" before end of method , found {} cfsServiceName {}", found, cfsServiceName);
-        return cfsServiceName;
+        return "";
     }
 
     /**
@@ -286,8 +246,6 @@ public class CatalogUtils {
      */
     public static Characteristic getCharacteristicFromEntity(CatalogEntity parentEntity, String characteristic) {
         final Collection<Characteristic> col = parentEntity.getEntity().getCharacteristics();
-        LOGGER.debug("Characteristics collection size: {}", col.size());
-        LOGGER.debug("Characteristic in method to search: {}", characteristic);
         for (final Characteristic c : col) {
             LOGGER.debug("CHAR NAME : {}\n CHAR firstvalue: {}\n CHAR portfoliofirstvalue: {}", c.getName(),
                     c.getFirstValue(), c.getFirstPortfolioValue());
@@ -374,17 +332,22 @@ public class CatalogUtils {
      * @param charName
      * @return value of charName Integer
      */
+    // Delete if generic solutions works
+    @Deprecated
     public static Integer getIntValueFromEntity(CatalogEntity catalogEntity, String charName) {
-        if (null != charName && null != catalogEntity && catalogEntity.isCharacteristicPopulated(charName)) {
-            LOGGER.debug("characteristic {} , value {} ", charName,
-                    catalogEntity.getEntity().getCharacteristic(charName).getFirstValue());
-            return Integer.parseInt(catalogEntity.getEntity().getCharacteristic(charName).getFirstValue());
-        } else {
-            LOGGER.info("characteristic {} not populated", charName);
-            return null;
-        }
+        return charName != null && catalogEntity != null && catalogEntity.isCharacteristicPopulated(charName)
+                ? Integer.parseInt(catalogEntity.getEntity().getCharacteristic(charName).getFirstValue())
+                : null;
     }
 
+    /**
+     * get order Item with GUID id from Catalog
+     * 
+     * @param soiRequest
+     * @param order
+     * @param guid
+     * @return
+     */
     public static OrderItem getOrderItemByGuid(SoiRequest soiRequest, Order order, String guid) {
         if (soiRequest != null) {
             final SoiRequestItem soiRequestItem = soiRequest.getRequestItems().stream().filter(
@@ -408,17 +371,9 @@ public class CatalogUtils {
      * @return List of orderItemKey
      */
     public static List<String> getOrderItemKeys(Order order, String guid) {
-        final List<String> orderItemKeys = new ArrayList<>();
-        for (final OrderItem oi : order.getAllOrderItem()) {
-            LOGGER.debug(" entity name : {}, spec key {}", oi.getCatalogEntity().getSpecFQNameWithoutPath(),
-                    oi.getCatalogEntity().getSpecKey());
-            if (StringUtils.equalsIgnoreCase(oi.getCatalogEntity().getSpec().getElementGUID(), guid)) {
-                LOGGER.debug(" entity found : {}", JsonUtils.toString(oi.getCatalogEntity()));
-                orderItemKeys.add(oi.getKey());
-            }
-        }
-        LOGGER.info("{} orderItemKeys found for guid {}", orderItemKeys.size(), guid);
-        return orderItemKeys;
+        return order.getAllOrderItem().stream()
+                .filter(x -> x.getCatalogEntity().getSpec().getElementGUID().equals(guid)).map(OrderItem::getKey)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -429,18 +384,9 @@ public class CatalogUtils {
      * @return List of orderItemKey
      */
     public static List<String> getOrderItemKeys(SoiRequest soiRequest, String guid) {
-        final List<String> orderItemKeys = new ArrayList<>();
-        for (final SoiRequestItem soiRequestItem : soiRequest.getRequestItems()) {
-            LOGGER.debug("Catalog Entity with Name {} ",
-                    soiRequestItem.getItem().getCatalogEntity().getSpecFQNameWithoutPath());
-            if (StringUtils.equalsIgnoreCase(soiRequestItem.getItem().getCatalogEntity().getSpec().getElementGUID(),
-                    guid)) {
-                LOGGER.debug(" entity found : {}", JsonUtils.toString(soiRequestItem.getItem().getCatalogEntity()));
-                orderItemKeys.add(soiRequestItem.getItem().getKey());
-            }
-        }
-        LOGGER.info("{} orderItemKeys found for guid {}", orderItemKeys.size(), guid);
-        return orderItemKeys;
+        return soiRequest.getRequestItems().stream()
+                .filter(x -> x.getItem().getCatalogEntity().getSpec().getElementGUID().equals(guid))
+                .map(x -> x.getItem().getKey()).collect(Collectors.toList());
     }
 
     /**
@@ -452,18 +398,27 @@ public class CatalogUtils {
      * @return List of orderItemKey
      */
     public static List<String> getOrderItemKeysForAction(Order order, String guid, ItemAction action) {
-        final List<String> orderItemKeys = new ArrayList<>();
-        for (final OrderItem oi : order.getAllOrderItem()) {
-            LOGGER.debug(" entity name : {}, spec key {}", oi.getCatalogEntity().getSpecFQNameWithoutPath(),
-                    oi.getCatalogEntity().getSpecKey());
-            if (StringUtils.equalsIgnoreCase(oi.getCatalogEntity().getSpec().getElementGUID(), guid)
-                    && oi.getAction().equals(action)) {
-                LOGGER.debug(" entity found : {}", JsonUtils.toString(oi.getCatalogEntity()));
-                orderItemKeys.add(oi.getKey());
-            }
-        }
-        LOGGER.info("{} orderItemKeys found for guid {}", orderItemKeys.size(), guid);
-        return orderItemKeys;
+        return order.getAllOrderItem().stream()
+                .filter(x -> x.getCatalogEntity().getSpec().getElementGUID().equals(guid))
+                .filter(x -> x.getAction().equals(action)).map(OrderItem::getKey).collect(Collectors.toList());
+    }
+
+    /**
+     * Get list of order items for given GUID and action (not mandatory) from order
+     *
+     * @param order
+     * @param guid
+     * @param action
+     * @return List of orderItemKey
+     */
+    public static List<OrderItem> getOrderItems(Order order, String guid, ItemAction... action) {
+        return action != null
+                ? order.getAllOrderItem().stream()
+                        .filter(x -> x.getCatalogEntity().getSpec().getElementGUID().equals(guid))
+                        .filter(x -> x.getAction().equals(action[0])).collect(Collectors.toList())
+                : order.getAllOrderItem().stream()
+                        .filter(x -> x.getCatalogEntity().getSpec().getElementGUID().equals(guid))
+                        .collect(Collectors.toList());
     }
 
     /**
@@ -474,39 +429,9 @@ public class CatalogUtils {
      * @return List of OrderItems
      */
     public static List<OrderItem> getOrderItemsByGuid(SoiRequest soiRequest, String guid) {
-        final List<OrderItem> orderItems = new ArrayList<>();
-        for (final SoiRequestItem soiRequestItem : soiRequest.getRequestItems()) {
-            LOGGER.debug("Catalog Entity with Name {} ",
-                    soiRequestItem.getItem().getCatalogEntity().getSpecFQNameWithoutPath());
-            if (StringUtils.equalsIgnoreCase(soiRequestItem.getItem().getCatalogEntity().getSpec().getElementGUID(),
-                    guid)) {
-                LOGGER.debug(" entity found : {}", JsonUtils.toString(soiRequestItem.getItem()));
-                orderItems.add(soiRequestItem.getItem());
-            }
-        }
-        LOGGER.info("{} CatalogEntity found for guid {}", orderItems.size(), guid);
-        return orderItems;
-    }
-
-    /**
-     * Get list of order items for given GUID and action from order
-     *
-     * @param order
-     * @param guid
-     * @param action
-     * @return List of orderItemKey
-     */
-    public static List<OrderItem> getOrderItemsForAction(Order order, String guid, ItemAction action) {
-        final List<OrderItem> orderItems = new ArrayList<>();
-        for (final OrderItem oi : order.getAllOrderItem()) {
-            if (StringUtils.equalsIgnoreCase(oi.getCatalogEntity().getSpec().getElementGUID(), guid)
-                    && oi.getAction().equals(action)) {
-                LOGGER.debug("OrderItem found : {}", JsonUtils.toString(oi));
-                orderItems.add(oi);
-            }
-        }
-        LOGGER.info("{} OrderItems found for guid {}", orderItems.size(), guid);
-        return orderItems;
+        return soiRequest.getRequestItems().stream()
+                .filter(x -> x.getItem().getCatalogEntity().getSpec().getElementGUID().equals(guid))
+                .map(SoiRequestItem::getItem).collect(Collectors.toList());
     }
 
     /**
@@ -514,15 +439,15 @@ public class CatalogUtils {
      * @param charName
      * @return value of charName String
      */
-    public static String getValueFromEntity(CatalogEntity catalogEntity, String charName) {
-        if (null != charName && null != catalogEntity && catalogEntity.isCharacteristicPopulated(charName)) {
+
+    @SuppressWarnings("unchecked")
+    public static <T> T getValueFromEntity(CatalogEntity catalogEntity, String charName) {
+        if (charName != null && catalogEntity != null && catalogEntity.isCharacteristicPopulated(charName)) {
             LOGGER.debug("characteristic {} , value {} ", charName,
                     catalogEntity.getEntity().getCharacteristic(charName).getFirstValue());
-            return catalogEntity.getEntity().getCharacteristic(charName).getFirstValue();
-        } else {
-            LOGGER.info("characteristic {} not populated", charName);
-            return null;
+            return (T) catalogEntity.getEntity().getCharacteristic(charName).getFirstValue();
         }
+        return null;
     }
 
     /**
@@ -531,16 +456,12 @@ public class CatalogUtils {
      * @return values of charName String
      */
     public static Set<String> getValuesFromEntity(CatalogEntity catalogEntity, String charName) {
-        if (null != charName && null != catalogEntity && catalogEntity.isCharacteristicPopulated(charName)) {
-            LOGGER.debug("characteristic {} , value {} ", charName,
-                    catalogEntity.getEntity().getCharacteristic(charName).getFirstValue());
-            return catalogEntity.getEntity().getCharacteristic(charName).getValues();
-        } else {
-            LOGGER.info("characteristic {} not populated", charName);
-            return new HashSet<>();
-        }
+        return charName != null && catalogEntity != null && catalogEntity.isCharacteristicPopulated(charName)
+                ? catalogEntity.getEntity().getCharacteristic(charName).getValues()
+                : new HashSet<>();
     }
 
+    @SuppressWarnings("unchecked")
     public static OrderChange updateEntities(Order order, List<InteractionItem> interactionItems,
             OrderChange orderChange, Map<String, Map<String, String>> catalogEnrich) {
         for (final Entry<?, ?> entry : catalogEnrich.entrySet()) {
@@ -553,7 +474,7 @@ public class CatalogUtils {
                 if (StringUtils.equalsIgnoreCase(oItem.getCatalogEntity().getSpec().getElementGUID(),
                         entry.getKey().toString())) {
                     itemChange.setKey(oItem.getKey());
-                    @SuppressWarnings("unchecked")
+
                     final Map<String, String> charValMap = (Map<String, String>) entry.getValue();
                     for (final Entry<?, ?> cvEntry : charValMap.entrySet()) {
                         final CharacteristicChange characteristicChange = new CharacteristicChange();
@@ -577,6 +498,7 @@ public class CatalogUtils {
      * @param catalogEnrich map of guid and map of characteristics and value
      * @return OrderChange object
      */
+    @SuppressWarnings("unchecked")
     public static OrderChange updateEntities(SoiRequest soiRequest, OrderChange orderChange,
             Map<String, Map<String, String>> catalogEnrich) {
         for (final Entry<?, ?> entry : catalogEnrich.entrySet()) {
@@ -589,7 +511,7 @@ public class CatalogUtils {
                         soiRequestItem.getItem().getCatalogEntity().getSpec().getElementGUID(),
                         entry.getKey().toString())) {
                     itemChange.setKey(soiRequestItem.getItem().getKey());
-                    @SuppressWarnings("unchecked")
+
                     final Map<String, String> charValMap = (Map<String, String>) entry.getValue();
                     for (final Entry<?, ?> cvEntry : charValMap.entrySet()) {
                         final CharacteristicChange characteristicChange = new CharacteristicChange();
