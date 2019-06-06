@@ -20,6 +20,8 @@ import org.slf4j.LoggerFactory;
 
 public abstract class Transformer implements Processor {
 
+	private final Logger LOGGER = log();
+
     abstract Object buildRequest(SoiRequest soiRequest);
 
     abstract Object manualTask(SoiRequest soiRequest, OrderChange orderChange);
@@ -32,18 +34,9 @@ public abstract class Transformer implements Processor {
         return LoggerFactory.getLogger(getClass());
     }
 
-    public MappingConfig getSoiMappingConfig(String adapterName, String filepath) {
-        MappingConfig mappingConfig = new MappingConfig();
-        try {
-            mappingConfig = SoiMapping.getConfig(EnvironmentUtil.getEnvConfig(adapterName).get(filepath));
-        } catch (final Exception e) {
-            throw new SoiTransformerException("Error creating mapping config file for " + adapterName);
-        }
-        return mappingConfig;
-    }
-
     @Override
     public void process(Exchange exchange) throws Exception {
+
         final SoiContext soiContext = SoiConfig.getSoIContextFromInBody(exchange);
         final String adapterName = SOIAdapterUtils.getSoiAdapter(exchange).getAdapterName();
 
@@ -62,7 +55,10 @@ public abstract class Transformer implements Processor {
                 if (payload != null) {
                     setPayload(payload);
                 }
+            }else {
+            	LOGGER.debug("Transformer request is null");
             }
+
             soiContext.setSoiExternalInteractions(OrderUtils.populateExternalInteractions(soiRequest));
         }
     }
