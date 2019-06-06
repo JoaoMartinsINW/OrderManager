@@ -39,6 +39,9 @@ import org.slf4j.LoggerFactory;
 
 public class OrderUtils {
 
+    private OrderUtils() {
+    }
+
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderUtils.class);
 
     /**
@@ -49,7 +52,7 @@ public class OrderUtils {
      * @return
      */
     public static String checkForCharChange(SoiRequest soiRequest, String charValueName) {
-        if (null != soiRequest.getEnrichmentInfo().getIpOrderChange()) {
+        if (soiRequest.getEnrichmentInfo().getIpOrderChange() != null) {
             final Collection<CharacteristicChange> charCollec = soiRequest.getEnrichmentInfo().getIpOrderChange()
                     .getCharacteristics();
             for (final CharacteristicChange charChange : charCollec) {
@@ -60,7 +63,7 @@ public class OrderUtils {
                 }
             }
         }
-        return null;
+        return "";
     }
 
     /**
@@ -78,10 +81,13 @@ public class OrderUtils {
      *
      *
      */
+
+    // ESte método é extremamente orientado ao negócio não me parece que venha a ser reutilizado no
+    // futuro
     public static Map<Integer, Integer> getAvailableTvlans(SoiRequest soiRequest, Order order, String provRfsGuid,
             String provRfsCvlanName, String provRfsTvlanName) {
         final Map<Integer, Integer> tvlans = new HashMap<>();
-        if (null == order) {
+        if (order == null) {
             order = OrderUtils.getLatestOrder(soiRequest.getOrderRef().getKey());
         }
 
@@ -135,12 +141,9 @@ public class OrderUtils {
      * @return value or order char String
      */
     public static String getCharacValueFromOrder(Order order, String charName) {
-        if (null != charName && null != order && order.isCharacteristicPopulated(charName)) {
-            return order.getEntity().getCharacteristic(charName).getFirstValue();
-        } else {
-            LOGGER.info("characteristic {} not populated on Order", charName);
-            return null;
-        }
+        return charName != null && order != null && order.isCharacteristicPopulated(charName)
+                ? order.getEntity().getCharacteristic(charName).getFirstValue()
+                : "";
     }
 
     /**
@@ -149,8 +152,11 @@ public class OrderUtils {
      * @param externalInteraction
      * @return Interaction
      */
-    public static Interaction getInteraction(ExternalInteractionImpl externalInteraction) {
 
+    // TODO:: se concordares , este método deve ser apagado, isto não acrescenta nada... porque nao
+    // chamar logo o IteractionRepositoryLocator?
+    @Deprecated
+    public static Interaction getInteraction(ExternalInteractionImpl externalInteraction) {
         if (externalInteraction != null) {
             return InteractionRepositoryLocator.getInstance().getInteraction(externalInteraction.getInteractionRef());
         }
@@ -164,6 +170,9 @@ public class OrderUtils {
      * @param charName
      * @return value or order char Integer
      */
+
+    // este método genérico já está no Catalog Utils
+    @Deprecated
     public static Integer getIntValueFromOrder(Order order, String charName) {
         if (null != charName && null != order && order.isCharacteristicPopulated(charName)) {
             return Integer.parseInt(order.getEntity().getCharacteristic(charName).getFirstValue());
@@ -197,9 +206,9 @@ public class OrderUtils {
      * @param soiRequest
      * @return Latest Order object
      */
-    public static Order getLatestOrder(String orderId) {
-        return OrderRepositoryLocator.getInstance().getOrder(orderId, -1L, -1L);
-    }
+    // public static Order getLatestOrder(String orderId) {
+    // return OrderRepositoryLocator.getInstance().getOrder(orderId, -1L, -1L);
+    // }
 
     /*
      * Get Order Item action for an entity GUID
@@ -248,7 +257,7 @@ public class OrderUtils {
      * @return ItemAction at root
      */
     public static ItemAction getRootItemAction(Long orderId) {
-        final Order order = getLatestOrder(String.valueOf(orderId));
+        final Order order = OrderRepositoryLocator.getInstance().getOrder(String.valueOf(orderId), -1L, -1L);
         for (final OrderItem orderItem : order.getRootOrderItems()) {
             return orderItem.getAction();
         }
@@ -270,7 +279,8 @@ public class OrderUtils {
             // if first item itself is the rootOrderItem
             return soiRequest.getRequestItems().get(0).getItem().getAction();
         } else {
-            final Order order = getLatestOrder(soiRequest.getOrderRef().getKey());
+            final Order order = OrderRepositoryLocator.getInstance()
+                    .getOrder(String.valueOf(soiRequest.getOrderRef().getKey()), -1L, -1L);
 
             while (!CommonUtils.isEmpty(order.getOrderItem(orderItemKey).getParentItemKey())) {
                 orderItemKey = order.getOrderItem(orderItemKey).getParentItemKey();
@@ -289,7 +299,8 @@ public class OrderUtils {
             // if first item itself is the rootOrderItem
             return soiRequest.getRequestItems().get(0).getItem().getOperation();
         } else {
-            final Order order = getLatestOrder(soiRequest.getOrderRef().getKey());
+            final Order order = OrderRepositoryLocator.getInstance().getOrder(soiRequest.getOrderRef().getKey(), -1L,
+                    -1L);
 
             while (!CommonUtils.isEmpty(order.getOrderItem(orderItemKey).getParentItemKey())) {
                 orderItemKey = order.getOrderItem(orderItemKey).getParentItemKey();

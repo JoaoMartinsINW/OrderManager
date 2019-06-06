@@ -182,11 +182,11 @@ public final class CatalogUtils {
             LOGGER.debug(" entity name : {}, spec key {}", oi.getCatalogEntity().getSpecFQNameWithoutPath(),
                     oi.getCatalogEntity().getSpecKey());
             if (StringUtils.equalsIgnoreCase(oi.getCatalogEntity().getSpec().getElementGUID(), guid)) {
-                LOGGER.info("return entity : {}", JsonUtils.toString(oi.getCatalogEntity()));
+                LOGGER.debug("return entity : {}", JsonUtils.toString(oi.getCatalogEntity()));
                 return oi.getCatalogEntity();
             }
         }
-        LOGGER.info("Unable to find the CatalogEntity for guid {}", guid);
+        LOGGER.debug("Unable to find the CatalogEntity for guid {}", guid);
         return null;
     }
 
@@ -440,14 +440,22 @@ public final class CatalogUtils {
      * @return value of charName String
      */
 
-    @SuppressWarnings("unchecked")
-    public static <T> T getValueFromEntity(CatalogEntity catalogEntity, String charName) {
-        if (charName != null && catalogEntity != null && catalogEntity.isCharacteristicPopulated(charName)) {
-            LOGGER.debug("characteristic {} , value {} ", charName,
-                    catalogEntity.getEntity().getCharacteristic(charName).getFirstValue());
-            return (T) catalogEntity.getEntity().getCharacteristic(charName).getFirstValue();
+    public static String getValueFromEntity(Object entity, String charName) {
+        if (entity instanceof CatalogEntity) {
+            final CatalogEntity catalogEntity = (CatalogEntity) entity;
+            if (charName != null && catalogEntity.isCharacteristicPopulated(charName)) {
+                LOGGER.debug("characteristic {} , value {} ", charName,
+                        catalogEntity.getEntity().getCharacteristic(charName).getFirstValue());
+                return catalogEntity.getEntity().getCharacteristic(charName).getFirstValue();
+            }
         }
-        return null;
+        if (entity instanceof Order) {
+            final Order order = (Order) entity;
+            return charName != null && order.isCharacteristicPopulated(charName)
+                    ? order.getEntity().getCharacteristic(charName).getFirstValue()
+                    : null;
+        }
+        return "";
     }
 
     /**
