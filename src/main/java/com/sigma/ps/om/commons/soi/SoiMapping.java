@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sigma.om.cmn.CommonUtils;
 import com.sigma.om.soi.framework.exception.SoiRuntimeException;
+import com.sigma.om.soi.framework.exception.SoiTransformerException;
+import com.sigma.ps.om.commons.envcfg.EnvironmentUtil;
 import com.sigma.ps.om.commons.file.FilesProcessorUtils;
 import com.sigma.ps.om.commons.soi.mapping.pojo.MappingConfig;
 
@@ -24,6 +26,16 @@ public class SoiMapping {
     private static Object                     soiMappingLock = new Object();
     /** ObjectMapper instance */
     private static ObjectMapper               mapper         = new ObjectMapper();
+
+    public MappingConfig getSoiMappingConfig(String adapterName, String filepath) {
+        MappingConfig mappingConfig = new MappingConfig();
+        try {
+            mappingConfig = SoiMapping.getConfig(EnvironmentUtil.getEnvConfig(adapterName).get(filepath));
+        } catch (final Exception e) {
+            throw new SoiTransformerException("Error creating mapping config file for " + adapterName);
+        }
+        return mappingConfig;
+    }
 
     /**
      * Get SOI mapping configuration fileName with relative path example
