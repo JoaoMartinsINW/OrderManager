@@ -1,5 +1,20 @@
 package com.sigma.ps.om.commons.sender;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sigma.om.cmn.CommonUtils;
+import com.sigma.om.cmn.JsonUtils;
+import com.sigma.om.sdk.soi.framework.SoiContext;
+import com.sigma.om.sdk.soi.interaction.IMExternalInteraction;
+import com.sigma.om.soi.framework.SoiConfig;
+import com.sigma.om.soi.framework.exception.SoiRuntimeException;
+import com.sigma.om.soi.interaction.ExternalResponseImpl;
+import com.sigma.ps.om.commons.envcfg.EnvironmentUtil;
+import com.sigma.ps.om.commons.http.HttpDeleteWithBody;
+import com.sigma.ps.om.commons.rest.RESTClient;
+import com.sigma.ps.om.commons.sender.pojo.TokenCustomPojo;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
@@ -24,21 +39,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sigma.om.cmn.CommonUtils;
-import com.sigma.om.cmn.JsonUtils;
-import com.sigma.om.sdk.soi.framework.SoiContext;
-import com.sigma.om.sdk.soi.interaction.IMExternalInteraction;
-import com.sigma.om.soi.framework.SoiConfig;
-import com.sigma.om.soi.framework.exception.SoiRuntimeException;
-import com.sigma.om.soi.interaction.ExternalResponseImpl;
-import com.sigma.ps.om.commons.envcfg.EnvironmentUtil;
-import com.sigma.ps.om.commons.http.HttpDeleteWithBody;
-import com.sigma.ps.om.commons.rest.RESTClient;
-import com.sigma.ps.om.commons.sender.pojo.TokenCustomPojo;
-
 /**
  * The Class ESBRequestSender.
  *
@@ -48,54 +48,36 @@ public final class ESBRequestSender implements Processor {
     public ESBRequestSender() {
     }
 
+    private static final String                 ACCEPT_CONTENT_TYPE         = "acceptContentType";
+
+    private static final String                 APP_JSON                    = "application/json";
+    private static final String                 APP_X_WWW_FORM_URL_CONCODED = "application/x-www-form-urlencoded";
+    private static final String                 AUTHORIZATION               = "Authorization";
+    private static final String                 AUTHPASS                    = "authPass";
+    private static final String                 BEARER                      = "Bearer";
+    private static final String                 CONTENT_TYPE                = "Content-Type";
+    private static final String                 DEFAULT                     = "DEFAULT";
+    private static final String                 DELETE                      = "DELETE";
+    private static final String                 DELETE_WITH_BODY            = "DELETE_WITH_BODY";
+    private static final String                 ESB                         = "ESB";
+    private static final String                 GET                         = "GET";
+    private static final String                 GRANT_TYPE                  = "grant_type";
+    /** The Constant LOGGER. */
+    private static final Logger                 LOGGER                      = LoggerFactory
+            .getLogger(ESBRequestSender.class);
+    private static final String                 METHOD                      = "method";
+    private static final String                 PASSWORD                    = "password";
+    private static final String                 REQUEST_URL                 = "requestUrl";
+    private static final String                 SKIP_TX                     = "skipTransaction";
+    private static final String                 Stubbed                     = "Stubbed";
     /**
      * Instantiates a new instance.
      */
     private static Map<String, TokenCustomPojo> token                       = new ConcurrentHashMap<>();
-
-    /** The Constant LOGGER. */
-    private static final Logger                 LOGGER                      = LoggerFactory
-            .getLogger(ESBRequestSender.class);
-    /** ESB */
-    private static final String                 ESB                         = "ESB";
-    /** DEFAULT */
-    private static final String                 DEFAULT                     = "DEFAULT";
-    /** userName for enviromentCFG */
-    private static final String                 USERNAME                    = "userName";
-    /** username for payload */
-    private static final String                 USERNAME_PO                 = "username";
-    /** password */
-    private static final String                 PASSWORD                    = "password";
-    /** tokenUrl */
-    private static final String                 TOKENURL                    = "tokenUrl";
-    /** authPass */
-    private static final String                 AUTHPASS                    = "authPass";
-    /** Content-Type value for token call */
-    private static final String                 APP_X_WWW_FORM_URL_CONCODED = "application/x-www-form-urlencoded";
-    /** Content-Type value for token call */
-    private static final String                 APP_JSON                    = "application/json";
-    /** CONTENT_TYPE */
-    private static final String                 CONTENT_TYPE                = "Content-Type";
-    /** GRANT_TYPE **/
-    private static final String                 GRANT_TYPE                  = "grant_type";
-    /** AUTHORIZATION **/
-    private static final String                 AUTHORIZATION               = "Authorization";
-    /** BEARER */
-    private static final String                 BEARER                      = "Bearer";
-    /** REQUEST_URL */
-    private static final String                 REQUEST_URL                 = "requestUrl";
-    /** METHOD */
-    private static final String                 METHOD                      = "method";
-    /** ACCEPT CONTENT TYPE */
-    private static final String                 ACCEPT_CONTENT_TYPE         = "acceptContentType";
-    /** GET */
-    private static final String                 GET                         = "GET";
-    /** DELETE */
-    private static final String                 DELETE                      = "DELETE";
-    private static final String                 DELETE_WITH_BODY            = "DELETE_WITH_BODY";
-    private static final String                 Stubbed                     = "Stubbed";
     private static final String                 TOKEN                       = "token";
-    private static final String                 SKIP_TX                     = "skipTransaction";
+    private static final String                 TOKENURL                    = "tokenUrl";
+    private static final String                 USERNAME                    = "userName";
+    private static final String                 USERNAME_PO                 = "username";
 
     private static boolean checkESBCallRequired() {
         if (token.containsKey(TOKEN)) {
@@ -112,7 +94,7 @@ public final class ESBRequestSender implements Processor {
      * @param response
      * @throws SoiRuntimeException, Caller should handle and set FAILED status for activity
      */
-    private static String processResponse(final Response response) throws SoiRuntimeException {
+    private static String processResponse(final Response response) {
         LOGGER.info("Response Status :{}", response.getStatus());
         final InputStream iStream = (InputStream) response.getEntity();
         final StringWriter writer = new StringWriter();
@@ -154,7 +136,7 @@ public final class ESBRequestSender implements Processor {
     /**
      * Get ESB Token.
      */
-    public static String getESBToken(String required) throws Exception {
+    public static String getESBToken(String required) {
         // Deployment must have configuration of ESB as Fulfillment system in envcfg
         if (checkESBCallRequired() || required.equals(ESB)) {
             synchronized (ESBRequestSender.class) {
@@ -191,7 +173,6 @@ public final class ESBRequestSender implements Processor {
 
         long timeDiff = Math.abs(pojo.getDate().getTime() - pojo.getCurrentDate().getTime());
         timeDiff = TimeUnit.MILLISECONDS.toSeconds(timeDiff);
-        System.out.println(timeDiff);
         return timeDiff;
     }
 
@@ -233,8 +214,7 @@ public final class ESBRequestSender implements Processor {
 
                 if (response.getStatus() == 401) {
                     token = getESBToken(ESB);
-                    headers.put(AUTHORIZATION,
-                            new StringBuilder(BEARER).append(" ").append(token).toString());
+                    headers.put(AUTHORIZATION, new StringBuilder(BEARER).append(" ").append(token).toString());
 
                     response = RESTClient.get(acceptContentType, requestUrl, headers, null);
                 }
@@ -244,20 +224,16 @@ public final class ESBRequestSender implements Processor {
 
                 if (response.getStatus() == 401) {
                     token = getESBToken(ESB);
-                    headers.put(AUTHORIZATION,
-                            new StringBuilder(BEARER).append(" ").append(token).toString());
+                    headers.put(AUTHORIZATION, new StringBuilder(BEARER).append(" ").append(token).toString());
 
                     response = RESTClient.delete(acceptContentType, requestUrl, headers, null);
                 }
-            } else if (StringUtils.equalsIgnoreCase(DELETE_WITH_BODY,
-                    (String) exchange.getIn().getHeader(METHOD))) {
-                // response = RESTClient.delete(acceptContentType, requestUrl, headers, null);
+            } else if (StringUtils.equalsIgnoreCase(DELETE_WITH_BODY, (String) exchange.getIn().getHeader(METHOD))) {
                 response = HttpDeleteWithBody.sendDelete(requestUrl, requestBody, headers);
 
                 if (response.getStatus() == 401) {
                     token = getESBToken(ESB);
-                    headers.put(AUTHORIZATION,
-                            new StringBuilder(BEARER).append(" ").append(token).toString());
+                    headers.put(AUTHORIZATION, new StringBuilder(BEARER).append(" ").append(token).toString());
                     response = HttpDeleteWithBody.sendDelete(requestUrl, requestBody, headers);
                 }
             } else {
@@ -266,23 +242,22 @@ public final class ESBRequestSender implements Processor {
 
                 if (response.getStatus() == 401) {
                     token = getESBToken(ESB);
-                    headers.put(AUTHORIZATION,
-                            new StringBuilder(BEARER).append(" ").append(token).toString());
+                    headers.put(AUTHORIZATION, new StringBuilder(BEARER).append(" ").append(token).toString());
                     response = RESTClient.post(requestBody, acceptContentType, headers, requestUrl);
                 }
             }
 
         } else {
             LOGGER.info("This transaction is skipped");
-            if(requestBody.isEmpty()){
-                requestBody="Request Payload is empty";
+            if (requestBody.isEmpty()) {
+                requestBody = "Request Payload is empty";
             }
             response = Response.ok()
                     .entity(new ReaderInputStream(new StringReader(requestBody), StandardCharsets.UTF_8))
                     .header(SKIP_TX, Boolean.TRUE).build();
         }
 
-        ExternalResponseImpl res = new ExternalResponseImpl();
+        final ExternalResponseImpl res = new ExternalResponseImpl();
         LOGGER.info(" response code : {} ", response.getStatus());
         res.setResponse(response);
         res.setExtInteractionId(soiContext.getSoiExternalInteraction().get(0).getId());

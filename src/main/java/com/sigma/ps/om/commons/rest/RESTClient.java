@@ -65,7 +65,7 @@ public final class RESTClient {
         final WebClient client = WebClient.create(endpoint);
         if (cookies != null && !cookies.isEmpty()) {
             for (final Cookie cookie : cookies) {
-                LOGGER.debug("cookie name : " + cookie.getName() + " value: " + cookie.getValue());
+                LOGGER.debug("cookie name : {} value: {}", cookie.getName(), cookie.getValue());
                 client.cookie(cookie);
             }
         }
@@ -97,7 +97,7 @@ public final class RESTClient {
         final WebClient client = WebClient.create(endpoint);
         if (cookies != null && !cookies.isEmpty()) {
             for (final Cookie cookie : cookies) {
-                LOGGER.debug("cookie name : " + cookie.getName() + " value: " + cookie.getValue());
+                LOGGER.debug("cookie name : {} value: {}", cookie.getName(), cookie.getValue());
                 client.cookie(cookie);
             }
         }
@@ -113,7 +113,7 @@ public final class RESTClient {
         LOGGER.debug("endpoint url {}", endpoint);
         WebClient.getConfig(client).getRequestContext().put("use.async.http.conduit", Boolean.TRUE);
         final Response response = client.get();
-        LOGGER.info("Response status {}", response.getStatus());
+        LOGGER.debug("Response status {}", response.getStatus());
         return response;
     }
 
@@ -124,19 +124,18 @@ public final class RESTClient {
      * @param endpoint enpoint url
      * @return Response
      */
-    public static Response post(Form form, String acceptContentType, Map<String, String> headers,
-            String endpoint) {
+    public static Response post(Form form, String acceptContentType, Map<String, String> headers, String endpoint) {
         final WebClient client = getWebClient(acceptContentType, endpoint);
         if (!CommonUtils.isEmpty(headers)) {
             headers.forEach((key, value) -> {
                 client.header(key, value);
             });
         } else {
-            LOGGER.info("Headers parameters are empty : {} ", headers);
+            LOGGER.debug("Headers parameters are empty : {} ", headers);
         }
-        LOGGER.info("sending form to endpoint url {}", endpoint);
+        LOGGER.debug("sending form to endpoint url {}", endpoint);
         final Response response = client.post(form);
-        LOGGER.info("Response status {}", response.getStatus());
+        LOGGER.debug("Response status {}", response.getStatus());
         return response;
     }
 

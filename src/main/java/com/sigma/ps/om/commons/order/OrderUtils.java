@@ -88,7 +88,7 @@ public class OrderUtils {
             String provRfsCvlanName, String provRfsTvlanName) {
         final Map<Integer, Integer> tvlans = new HashMap<>();
         if (order == null) {
-            order = OrderUtils.getLatestOrder(soiRequest.getOrderRef().getKey());
+            order = OrderRepositoryLocator.getInstance().getOrder(soiRequest.getOrderRef().getKey(), -1L, -1L);
         }
 
         for (final PortfolioItem portfolioItem : order.getCustomer().getAllPortfolioItem()) {
